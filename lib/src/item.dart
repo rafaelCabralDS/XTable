@@ -19,6 +19,10 @@ class WidgetTableItem extends TableItem {
   const WidgetTableItem({required this.child});
 }
 
+class EmptyTableItem extends TableItem {
+  const EmptyTableItem();
+}
+
 
 class TableItemBuilder extends StatelessWidget {
 
@@ -37,6 +41,8 @@ class TableItemBuilder extends StatelessWidget {
         return Text((item as TextTableItem).value ?? "-", style: theme.itemTextStyle);
       case WidgetTableItem():
         return (item as WidgetTableItem).child;
+      case EmptyTableItem():
+        return const SizedBox.shrink();
     }
 
   }
