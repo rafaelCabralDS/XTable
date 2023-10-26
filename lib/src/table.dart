@@ -76,14 +76,16 @@ class _DataSource extends DataGridSource {
 
 }
 
-class XTable extends StatelessWidget {
+class XTable extends StatefulWidget {
 
   final Map<TableHeader, List<TableItem>> data;
+  final void Function(int i)? onRowTap;
 
 
-  const XTable({super.key, required this.data});
+  const XTable({super.key, required this.data, this.onRowTap});
   XTable.json({super.key,
     required List<Map<String,dynamic>> data,
+    this.onRowTap,
   }): data = _mapJson(data);
 
   static Map<TableHeader, List<TableItem>> _mapJson(List<Map<String,dynamic>> data) {
@@ -101,6 +103,27 @@ class XTable extends StatelessWidget {
   }
 
   @override
+  State<XTable> createState() => _XTableState();
+}
+
+class _XTableState extends State<XTable> {
+
+  late final DataGridSource _source;
+
+  @override
+  void initState() {
+    _source = _DataSource(widget.data);
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _source.dispose();
+    super.dispose();
+  }
+
+
+  @override
   Widget build(BuildContext context) {
 
     var theme = XTableTheme.of(context);
@@ -112,12 +135,20 @@ class XTable extends StatelessWidget {
         rowHoverColor: theme.rowHoverColor
       ),
       child: SfDataGrid(
-          source: _DataSource(data),
+          source: _source,
           gridLinesVisibility: GridLinesVisibility.none,
           headerGridLinesVisibility: GridLinesVisibility.none,
+
+          onCellTap: (details) {
+            if (details.rowColumnIndex.rowIndex != 0 && widget.onRowTap != null) {
+              int selectedRowIndex = details.rowColumnIndex.rowIndex - 1;
+              widget.onRowTap!(selectedRowIndex);
+            }
+          },
+
           columnWidthMode: ColumnWidthMode.fill,
           shrinkWrapRows: true,
-          columns: data.keys.map((e) => GridColumn(
+          columns: widget.data.keys.map((e) => GridColumn(
               columnName: e.key,
               label: TableHeaderBuilder(e)
           )).toList()
