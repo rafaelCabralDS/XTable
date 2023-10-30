@@ -76,14 +76,17 @@ class _DataSource extends DataGridSource {
 
 }
 
-class XTable extends StatefulWidget {
+
+/// A table to visualize data. It is not optimized, since every data change reset the DataSource
+/// and the whole tree will be rebuilt. For more complex cases, choose another option
+class XTableVisualizer extends StatefulWidget {
 
   final Map<TableHeader, List<TableItem>> data;
   final void Function(int i)? onRowTap;
 
 
-  const XTable({super.key, required this.data, this.onRowTap});
-  XTable.json({super.key,
+  const XTableVisualizer({super.key, required this.data, this.onRowTap});
+  XTableVisualizer.json({super.key,
     required List<Map<String,dynamic>> data,
     this.onRowTap,
   }): data = _mapJson(data);
@@ -103,17 +106,25 @@ class XTable extends StatefulWidget {
   }
 
   @override
-  State<XTable> createState() => _XTableState();
+  State<XTableVisualizer> createState() => _XTableVisualizerState();
 }
 
-class _XTableState extends State<XTable> {
+class _XTableVisualizerState extends State<XTableVisualizer> {
 
-  late final DataGridSource _source;
+  late DataGridSource _source;
 
   @override
   void initState() {
     _source = _DataSource(widget.data);
     super.initState();
+  }
+
+  @override
+  void didUpdateWidget(covariant XTableVisualizer oldWidget) {
+    setState(() {
+      _source = _DataSource(widget.data);
+    });
+    super.didUpdateWidget(oldWidget);
   }
 
   @override
