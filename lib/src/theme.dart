@@ -6,17 +6,19 @@ import 'package:flutter/material.dart';
 class XTableThemeData with Diagnosticable {
 
   final Color? headerColor;
-  final Color? headerHoverColor;
-  final Color? rowHoverColor;
+  final Color? hoverColor;
   final TextStyle? itemTextStyle;
   final TextStyle? headerTextStyle;
+  final double? rowHeight;
+  final double? headerHeight;
 
   const XTableThemeData({
     this.headerColor,
-    this.headerHoverColor,
-    this.rowHoverColor,
+    this.hoverColor,
     this.itemTextStyle,
-    this.headerTextStyle
+    this.headerTextStyle,
+    this.headerHeight,
+    this.rowHeight,
   });
 
   static const XTableThemeData factory = XTableThemeData();
@@ -29,18 +31,18 @@ class XTableThemeData with Diagnosticable {
     TextStyle? headerTextStyle
   }) => XTableThemeData(
       headerColor: headerColor ?? this.headerColor,
-      headerHoverColor: hoverColor ?? this.headerHoverColor,
-      rowHoverColor: rowHoverColor ?? this.rowHoverColor,
+      hoverColor: hoverColor ?? this.hoverColor,
       itemTextStyle: itemTextStyle ?? this.itemTextStyle,
       headerTextStyle: headerTextStyle ?? this.headerTextStyle
   );
 
   XTableThemeData merge({XTableThemeData? themeData}) => XTableThemeData(
       headerColor: themeData?.headerColor ?? headerColor,
-      headerHoverColor: themeData?.headerHoverColor ?? headerHoverColor,
-      rowHoverColor: themeData?.rowHoverColor ?? rowHoverColor,
+      hoverColor: themeData?.hoverColor ?? hoverColor,
       itemTextStyle: themeData?.itemTextStyle ?? itemTextStyle,
-      headerTextStyle: themeData?.headerTextStyle ?? headerTextStyle
+      headerTextStyle: themeData?.headerTextStyle ?? headerTextStyle,
+      headerHeight: themeData?.headerHeight ?? headerHeight,
+      rowHeight: themeData?.rowHeight ?? rowHeight
   );
 
 }

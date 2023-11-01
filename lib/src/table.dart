@@ -76,13 +76,14 @@ class _DataSource extends DataGridSource {
 
 }
 
-
+/*
 /// A table to visualize data. It is not optimized, since every data change reset the DataSource
 /// and the whole tree will be rebuilt. For more complex cases, choose another option
 class XTableVisualizer extends StatefulWidget {
 
   final Map<TableHeader, List<TableItem>> data;
   final void Function(int i)? onRowTap;
+  final Widget emptyBuilder;
 
 
   const XTableVisualizer({super.key, required this.data, this.onRowTap});
@@ -142,8 +143,9 @@ class _XTableVisualizerState extends State<XTableVisualizer> {
     return SfDataGridTheme(
       data: SfDataGridThemeData(
         headerColor: theme.headerColor,
-        headerHoverColor: theme.headerHoverColor,
-        rowHoverColor: theme.rowHoverColor
+        headerHoverColor: theme.hoverColor,
+        rowHoverColor: theme.hoverColor,
+
       ),
       child: SfDataGrid(
           source: _source,
@@ -159,6 +161,8 @@ class _XTableVisualizerState extends State<XTableVisualizer> {
 
           columnWidthMode: ColumnWidthMode.fill,
           shrinkWrapRows: true,
+          headerRowHeight: theme.headerHeight ?? double.nan,
+          rowHeight: theme.rowHeight ?? double.nan,
           columns: widget.data.keys.map((e) => GridColumn(
               columnName: e.key,
               label: TableHeaderBuilder(e)
@@ -167,5 +171,80 @@ class _XTableVisualizerState extends State<XTableVisualizer> {
     );
   }
 }
+
+ */
+
+class XTableStatic extends StatelessWidget {
+
+  final Map<TableHeader, List<TableItem>> data;
+  final void Function(int i)? onRowTap;
+  final Widget? emptyBuilder;
+
+  static Map<TableHeader, List<TableItem>> _mapJson(List<Map<String,dynamic>> data) {
+    final Map<String, List> foo = {};
+    for (var row in data) {
+      for (var column in row.entries) {
+        if (foo.containsKey(column.key)) {
+          foo[column.key]!.add(column.value);
+        } else {
+          foo[column.key] = [column.value];
+        }
+      }
+    }
+    return foo.map((key, value) => MapEntry(TableHeader(name: key), value.map((e) => TextTableItem(value: e)).toList()));
+  }
+
+  const XTableStatic({super.key, required this.data, this.onRowTap, this.emptyBuilder});
+  XTableStatic.json({super.key,
+    required List<Map<String,dynamic>> data,
+    this.onRowTap,
+    this.emptyBuilder,
+  }): data = _mapJson(data);
+
+  @override
+  Widget build(BuildContext context) {
+    var theme = XTableTheme.of(context);
+    
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SfDataGridTheme(
+          data: SfDataGridThemeData(
+            headerColor: theme.headerColor,
+            headerHoverColor: theme.hoverColor,
+            rowHoverColor: theme.hoverColor,
+
+          ),
+          child: SfDataGrid(
+              source: _DataSource(data),
+              gridLinesVisibility: GridLinesVisibility.none,
+              headerGridLinesVisibility: GridLinesVisibility.none,
+
+              onCellTap: (details) {
+                if (details.rowColumnIndex.rowIndex != 0 && onRowTap != null) {
+                  int selectedRowIndex = details.rowColumnIndex.rowIndex - 1;
+                  onRowTap!(selectedRowIndex);
+                }
+              },
+
+              columnWidthMode: ColumnWidthMode.fill,
+              shrinkWrapRows: true,
+              headerRowHeight: theme.headerHeight ?? double.nan,
+              rowHeight: theme.rowHeight ?? double.nan,
+              columns: data.keys.map((e) => GridColumn(
+                  columnName: e.key,
+                  label: TableHeaderBuilder(e)
+              )).toList()
+          ),
+        ),
+
+        if (data.values.every((element) => element.isEmpty) && emptyBuilder != null)
+          emptyBuilder!
+
+      ],
+    );
+  }
+}
+
 
 
