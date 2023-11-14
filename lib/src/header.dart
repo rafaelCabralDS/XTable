@@ -37,7 +37,7 @@ class TableHeaderBuilder extends StatelessWidget {
         alignment: header.alignment,
         child: Padding(
           padding: header.padding,
-          child: Text(header.name.capitalize(), style: theme.headerTextStyle),
+          child: Text(header.name.capitalize(), style: theme.headerTextStyle?.copyWith(color: theme.headerTextColor)),
         ));
   }
 }

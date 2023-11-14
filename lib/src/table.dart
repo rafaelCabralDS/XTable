@@ -40,27 +40,30 @@ class _DataSource extends DataGridSource {
     return rows;
   }
 
-
   @override
   DataGridRowAdapter? buildRow(DataGridRow row) {
-
+    var rowIndex = effectiveRows.indexOf(row);
     return DataGridRowAdapter(
         cells: (row.getCells() as List<DataGridCell<TableItem>>)
             .mapIndexed<Widget>((i,e) => Builder(
               builder: (context) {
 
                 var cellHeader = getHeaderByIndex(i);
+                var theme = XTableTheme.of(context);
 
                 return Column(
                   children: [
                     Expanded(
                       flex: cellHeader.flex,
-                      child: Align(
-                          alignment: cellHeader.alignment,
-                          child: Padding(
-                            padding: cellHeader.padding,
-                            child: TableItemBuilder(e.value!),
-                          )
+                      child: Container(
+                        color: rowIndex%2==0 ? theme.rowColor : (theme.rowAlternateColor ?? theme.rowColor),
+                        child: Align(
+                            alignment: cellHeader.alignment,
+                            child: Padding(
+                              padding: cellHeader.padding,
+                              child: TableItemBuilder(e.value!),
+                            )
+                        ),
                       ),
                     ),
                     const Divider(height: 0)
