@@ -15,7 +15,7 @@ class XTableColumn<T> {
   final Alignment alignment;
   final Widget Function(T e, bool isHovered) cellBuilder;
   final Widget Function(T e, bool isHovered)? headerBuilder;
-  final Filter? filter;
+  final List<Filter<dynamic>> filters;
 
   const XTableColumn({
     required this.key,
@@ -26,7 +26,7 @@ class XTableColumn<T> {
     this.alignment = Alignment.center,
     this.flex = 1,
     this.headerBuilder,
-    this.filter,
+    this.filters = const [],
   });
 
   XTableColumn.text({
@@ -37,7 +37,7 @@ class XTableColumn<T> {
     this.alignment = Alignment.center,
     this.flex = 1,
     this.headerBuilder,
-    this.filter,
+    this.filters = const [],
   }) : cellBuilder =  ((T e, bool isHovered) => defaultColumnTextBuilder(map(e).toString(), isHovered));
 
 }
@@ -62,53 +62,70 @@ class XTableController<T> extends ChangeNotifier {
   late String sortingBy;
   bool sortingUp = true;
   int pageIndex = 0;
-  int? paginateCount;
+  late int paginateCount;
 
   XTableController({
     required this.source,
     required this.columns,
-    this.paginateCount,
+    int? paginateCount,
   }) {
     assert (columns.isNotEmpty);
 
-    rows = source.mapIndexed((i,e) => XTableRow(
+    effectiveRows = source.mapIndexed((i,e) => XTableRow(
         cells: columns.map((column) => column.map(e)).toList(),
         index: i
     )).toList();
-    effectiveRows = rows;
+    rows = effectiveRows;
+    this.paginateCount = paginateCount ?? effectiveRows.length;
     sortingBy = columns.first.key;
+    setPage(0);
+    _setFilters();
   }
 
+  List<E> getEffectiveColumn<E>(String key) {
+    var columnIndex = columns.indexWhere((element) => element.key == key);
+    return effectiveRows.map((e) => e.cells[columnIndex]).toList() as List<E>;
+  }
+
+  void _setFilters() {
+    // Look for sync filters;
+    for (var filter in columns.expand((e) => e.filters)) {
+      if (filter.sync) {
+        filter.addListener(() {
+          applyFilters();
+        });
+      }
+    }
+  }
 
   void applyFilters() {
 
-    /*
-    var filteredRows = effectiveRows;
-    rows = effectiveRows;
-
-    for (var row in rows) {
-      var columnIndex = -1;
-      for (var column in columns) {
-        columnIndex+=1;
-        if (column.filter == null) continue;
-        var filteredVal = row.cells[columnIndex];
-        if (column.filter!.getFiltered(filteredVal)) filteredRows.add(row);
+    // And filters first
+    var results = List<XTableRow>.from(effectiveRows);
+    for (var e in columns) {
+      var columnIndex = columns.indexOf(e);
+      for (var filter in e.filters) {
+        if (filter.union != FilterUnion.and) continue;
+        results = results.where((element) => filter.isIn(element.cells[columnIndex])).toList();
       }
     }
-    sort(sortingBy);
-    sort(sortingBy);
-    setPage(0);
 
-     */
 
+    final List<List<XTableRow>> queries = [];
+    for (var e in columns) {
+      var columnIndex = columns.indexOf(e);
+      for (var filter in e.filters) {
+        if (filter.union != FilterUnion.or) continue;
+        queries.add(List<XTableRow>.from(results.where((element) => filter.isIn(element.cells[columnIndex]))));
+      }
+    }
+    rows = List<XTableRow>.from(queries.expand((element) => element).toSet());
+    notifyListeners();
   }
 
-
-
   void clearFilters() {
-    for (var column in columns) {
-      if (column.filter == null) continue;
-      column.filter!.clear();
+    for (var filter in columns.expand((element) => element.filters)) {
+      filter.clear();
     }
     rows = effectiveRows;
     notifyListeners();
@@ -127,16 +144,24 @@ class XTableController<T> extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Paginate
 
-  int get pagesCount => (effectiveRows.length / pageIndex).ceil();
+  int get pagesCount => (effectiveRows.length / (paginateCount)).ceil();
 
   void setPage(int i) {
-    assert(paginateCount != null);
     assert(i <= pagesCount);
 
     pageIndex = i;
-    rows = effectiveRows.sublist(pageIndex*paginateCount!, min(effectiveRows.length, (pageIndex+1)*paginateCount!));
+    rows = effectiveRows.sublist(pageIndex*paginateCount, min(effectiveRows.length, (pageIndex+1)*paginateCount!));
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    for (var filter in columns.expand((e) => e.filters)) {
+      filter.dispose();
+    }
+    super.dispose();
   }
 
 }
