@@ -11,6 +11,7 @@ class XTableThemeData with Diagnosticable {
   final Color? rowColor;
   final Color? rowAlternateColor;
   final TextStyle? itemTextStyle;
+  final Color? itemHoverTextColor;
   final TextStyle? headerTextStyle;
   final double? rowHeight;
   final double? headerHeight;
@@ -40,6 +41,7 @@ class XTableThemeData with Diagnosticable {
     this.emptyBuilder = const SizedBox.shrink(),
     this.rowColor,
     this.rowAlternateColor,
+    this.itemHoverTextColor,
   });
 
   static const XTableThemeData factory = XTableThemeData();
@@ -60,6 +62,7 @@ class XTableThemeData with Diagnosticable {
     Color? headerHoverTextColor,
     Widget? loadingBuilder,
     Widget? emptyBuilder,
+    Color? itemHoverTextColor,
   }) => XTableThemeData(
       rowColor: rowColor ?? this.rowColor,
       rowAlternateColor: rowAlternateColor ?? this.rowAlternateColor,
@@ -76,6 +79,7 @@ class XTableThemeData with Diagnosticable {
       headerHoverTextColor: headerHoverTextColor ?? this.headerHoverTextColor,
       loadingBuilder: loadingBuilder ?? this.loadingBuilder,
       emptyBuilder: emptyBuilder ?? this.emptyBuilder,
+      itemHoverTextColor: itemHoverTextColor ?? this.itemHoverTextColor
   );
 
   XTableThemeData merge({XTableThemeData? themeData}) => XTableThemeData(
@@ -94,6 +98,7 @@ class XTableThemeData with Diagnosticable {
       headerHoverTextColor: themeData?.headerHoverTextColor ?? headerHoverTextColor,
       loadingBuilder: themeData?.loadingBuilder ?? loadingBuilder,
       emptyBuilder: themeData?.emptyBuilder ?? emptyBuilder,
+      itemHoverTextColor: themeData?.itemHoverTextColor ?? itemHoverTextColor
   );
 
 }
