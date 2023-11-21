@@ -4,8 +4,8 @@ import 'package:x_table/src/v3/table_controller.dart';
 import 'package:collection/collection.dart';
 
 typedef ElementWidgetBuilder<T> = Widget Function(BuildContext context,T e,bool isHovered);
-typedef RowActionsBuilder<T> = ({double width, ElementWidgetBuilder builder});
-typedef PrefixBuilder<T> = ({double width, ElementWidgetBuilder builder});
+typedef RowActionsBuilder<T> = ({double width, ElementWidgetBuilder<T> builder});
+typedef PrefixBuilder<T> = ({double width, ElementWidgetBuilder<T> builder});
 
 class XTableV3<T> extends StatefulWidget {
 
@@ -42,9 +42,13 @@ class _XTableV3State<T> extends State<XTableV3<T>> {
 
   @override
   void initState() {
-    widget.controller.attach(widget.columns);
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      widget.controller.attach(widget.columns);
+    });
+
     super.initState();
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -63,6 +67,9 @@ class _XTableV3State<T> extends State<XTableV3<T>> {
         return AnimatedBuilder(
           animation: widget.controller,
           builder: (context, child) {
+
+            if (!widget.controller.isAttached) return XTableTheme.of(context).loadingBuilder;
+
             return Column(
               children: [
 

@@ -85,10 +85,13 @@ class XTableController<T> extends ChangeNotifier {
 
   /// The list with the filtered and sorted items
   List<XTableRow<T>> filteredRows = [];
-  List<XTableRow<T>> paginatedRows = [];
 
   /// The entire available data list
-  List<XTableRow<T>> effectiveRows = [];
+  List<XTableRow<T>> get effectiveRows => List<XTableRow<T>>.from(List<T>.from(source).mapIndexed((i,e) => XTableRow<T>(
+    cells: columns.map((column) => column.cell(e)).toList(),
+    index: i,
+    e: e,
+  )));
 
   bool isAttached = false;
 
@@ -111,7 +114,6 @@ class XTableController<T> extends ChangeNotifier {
   }
 
 
-
   void attach(List<XTableColumn<T>> columns) {
     if (isAttached) return;
     isAttached = true;
@@ -120,10 +122,8 @@ class XTableController<T> extends ChangeNotifier {
     for (var e in _attachmentCallbacks) {
       e.call(this.columns);
     }
-
     sortingBy = columns.first.key;
-    _mapSource();
-    applyFilters();
+    _sortFilterPaginate();
   }
 
   final List<AttachmentCallback> _attachmentCallbacks = [];
@@ -135,56 +135,47 @@ class XTableController<T> extends ChangeNotifier {
   void set(List<T> data) {
 
     source.clear();
-    effectiveRows = [];
     filteredRows = [];
-    paginatedRows = [];
     source.addAll(List.from(data));
     if (isAttached) {
-      _mapSource();
-      applyFilters();
+      _sortFilterPaginate();
     }
   }
 
+
+  /*
   void addAll(List<T> data) {
     source.addAll(data);
     if (isAttached) {
-      _mapSource();
-      applyFilters();
+      _sortFilterPaginate();
     }
   }
 
   void insertAll(List<T> data) {
     source.insertAll(0,data);
     if (isAttached) {
-      _mapSource();
-      applyFilters();
+      _sortFilterPaginate();
     }
   }
 
   void remove(T e) {
     source.remove(e);
-    _mapSource();
-    applyFilters();
+    _sortFilterPaginate();
   }
 
   void clear() {
     source.clear();
-    effectiveRows.clear();
     filteredRows.clear();
-    notifyListeners();
+    setPage(0);
   }
 
-  List<E> getEffectiveColumn<E>(String key) {
-    var columnIndex = columns.indexWhere((element) => element.key == key);
-    return effectiveRows.map((e) => e.cells[columnIndex]).toList() as List<E>;
-  }
+   */
 
-  void _mapSource() {
-    effectiveRows = List<XTableRow<T>>.from(List<T>.from(source).mapIndexed((i,e) => XTableRow<T>(
-        cells: columns.map((column) => column.cell(e)).toList(),
-        index: i,
-        e: e,
-    )));
+
+  void _sortFilterPaginate() {
+    filteredRows = _sort(effectiveRows);
+    filteredRows = _filter(filteredRows);
+    setPage(0);
   }
 
   /// Filtering
@@ -196,11 +187,10 @@ class XTableController<T> extends ChangeNotifier {
     }
     return null;
   }
-  
-  void applyFilters() {
 
-    var results = List<XTableRow<T>>.from(effectiveRows);
-    
+  List<XTableRow<T>> _filter(List<XTableRow<T>> data) {
+    var results = List<XTableRow<T>>.from(data);
+
     /// "And"
     for (final e in filters.entries) {
       for (final Filter filter in e.value) {
@@ -211,7 +201,7 @@ class XTableController<T> extends ChangeNotifier {
             : element.cells[columnIndex].value)).toList();
       }
     }
-    
+
     /// Or
     if (filters.values.expand((element) => element).any((element) => element.union == LogicOperator.or)) {
       final List<List<XTableRow<T>>> queries = [];
@@ -226,12 +216,16 @@ class XTableController<T> extends ChangeNotifier {
           );
         }
       }
-      filteredRows = _sort(List<XTableRow<T>>.from(queries.expand((element) => element).toSet()));
+      return queries.expand((element) => element).toSet().toList(); // _sort(List<XTableRow<T>>.from(queries.expand((element) => element).toSet()));
     }  else {
-      filteredRows = results;
+      return results;
     }
-    paginatedRows = filteredRows;
-    notifyListeners();
+
+  }
+
+  void applyFilters() {
+    filteredRows = _filter(effectiveRows);
+    sort();
   }
   
   /// Add all [filters] to all given [columnKeys] if not present, otherwise will replace the old one
@@ -261,7 +255,7 @@ class XTableController<T> extends ChangeNotifier {
       filter.clear();
     }
     filteredRows = effectiveRows;
-    notifyListeners();
+    setPage(0);
   }
 
   List<XTableRow<T>> _sort(List<XTableRow<T>> data) {
@@ -272,21 +266,25 @@ class XTableController<T> extends ChangeNotifier {
         (!sortingUp ? rowA : rowB).cells[sortedColumnIndex].value));
   }
 
-  void sort(String columnKey) {
-    if (columnKey == sortingBy) sortingUp = !sortingUp;
-    sortingBy = columnKey;
-    filteredRows = _sort(effectiveRows);
-    notifyListeners();
+  void sort([String? columnKey]) {
+
+    if (columnKey != null) {
+      if (columnKey == sortingBy) sortingUp = !sortingUp;
+      sortingBy = columnKey;
+    }
+
+    filteredRows = _sort(filteredRows);
+    setPage(0);
   }
 
-  /// Paginate
+  /// -------------------- Paginate
 
-  int get pagesCount => (effectiveRows.length / (paginateCount)).ceil();
+  List<XTableRow<T>> get paginatedRows => filteredRows.sublist(pageIndex*paginateCount, min(filteredRows.length, (pageIndex+1)*paginateCount));
+  int get pagesCount => (filteredRows.length / (paginateCount)).ceil();
 
   void setPage(int i) {
-    int targetIndex = min(max(i,0), pagesCount-1);
+    int targetIndex = min(max(i,0), max(pagesCount-1,0));
     pageIndex = targetIndex;
-    paginatedRows = filteredRows.sublist(pageIndex*paginateCount, min(filteredRows.length, (pageIndex+1)*paginateCount));
     notifyListeners();
   }
 
