@@ -1,155 +1,98 @@
 import 'package:flutter/material.dart';
-import 'package:syncfusion_flutter_core/theme.dart';
-import 'package:syncfusion_flutter_datagrid/datagrid.dart';
-import 'package:x_table/src/item.dart';
 import 'package:x_table/src/theme.dart';
-import 'header.dart';
+import 'package:x_table/src/builders.dart';
+import 'package:x_table/src/table_controller.dart';
 import 'package:collection/collection.dart';
 
-class _DataSource extends DataGridSource {
 
-  final Map<TableHeader, List<TableItem>> data;
+class XTableV3<T extends Object> extends StatefulWidget {
 
-  _DataSource(this.data);
+  final XTableController<T> controller;
+  final List<XTableColumn<T>> columns;
+  final void Function(T)? onRowTap;
+  final SizedBuilder<T>? actions;
+  final Alignment columnsAlignment;
 
-  Map<TableHeader, TableItem> getRow(int i) {
-    var row = <TableHeader, TableItem>{};
-    for (var column in data.entries) {
-      row[column.key] = column.value[i];
-    }
-    return row;
-  }
+  /// Build a widget before the cells
+  final SizedBuilder<T>? prefix;
 
-  TableHeader getHeaderByKey(String key) => data.keys.singleWhere((element) => element.key == key);
-  TableHeader getHeaderByIndex(int i) =>  data.keys.toList()[i];
-  MapEntry<TableHeader, List<TableItem>> getColumnByIndex(int i) => data.entries.toList()[i];
-  MapEntry<TableHeader, List<TableItem>> getColumnByKey(String key) => data.entries.singleWhere((element) => element.key.key == key);
+  final Widget Function(XTableColumn<T> column, bool isHovered)? headerBuilder;
 
-  @override
-  List<DataGridRow> get rows {
+  final Widget Function(T e, bool isHovered, Widget child)? hoverWrapper;
+  final bool shrinkWrap;
+  final ScrollPhysics physics;
 
-    var len = data.values.first.length;
-    var rows = <DataGridRow>[];
-    for (int i = 0; i < len; i++) {
-      var cells = <DataGridCell<TableItem>>[];
-      for (var e in getRow(i).entries) {
-        cells.add(DataGridCell<TableItem>(columnName: e.key.key, value: e.value));
-      }
-      rows.add(DataGridRow(cells: cells));
-    }
-    return rows;
-  }
+  const XTableV3({
+    super.key,
+    required this.controller,
+    required this.columns,
+    this.onRowTap,
+    this.actions,
+    this.prefix,
+    this.headerBuilder,
+    this.hoverWrapper,
+    this.columnsAlignment = Alignment.centerLeft,
+    this.shrinkWrap = false,
+    this.physics = const AlwaysScrollableScrollPhysics(),
+  }) : assert(columns.length > 0);
 
   @override
-  DataGridRowAdapter? buildRow(DataGridRow row) {
-    var rowIndex = effectiveRows.indexOf(row);
-    return DataGridRowAdapter(
-        cells: (row.getCells() as List<DataGridCell<TableItem>>)
-            .mapIndexed<Widget>((i,e) => Builder(
-              builder: (context) {
-
-                var cellHeader = getHeaderByIndex(i);
-                var theme = XTableTheme.of(context);
-
-                return Column(
-                  children: [
-                    Expanded(
-                      flex: cellHeader.flex,
-                      child: Container(
-                        color: rowIndex%2==0 ? theme.rowColor : (theme.rowAlternateColor ?? theme.rowColor),
-                        child: Align(
-                            alignment: cellHeader.alignment,
-                            child: Padding(
-                              padding: cellHeader.padding,
-                              child: TableItemBuilder(e.value!),
-                            )
-                        ),
-                      ),
-                    ),
-                    const Divider(height: 0)
-
-                  ],
-        );
-              }
-            ))
-            .toList()
-    );
-
-  }
-
+  State<XTableV3<T>> createState() => _XTableV3State<T>();
 }
 
-class XTableStatic extends StatelessWidget {
+class _XTableV3State<T extends Object> extends State<XTableV3<T>> {
 
-  final Map<TableHeader, List<TableItem>> data;
-  final void Function(int i)? onRowTap;
-  final Widget? emptyBuilder;
-
-  static Map<TableHeader, List<TableItem>> _mapJson(List<Map<String,dynamic>> data) {
-    final Map<String, List> foo = {};
-    for (var row in data) {
-      for (var column in row.entries) {
-        if (foo.containsKey(column.key)) {
-          foo[column.key]!.add(column.value);
-        } else {
-          foo[column.key] = [column.value];
-        }
-      }
-    }
-    return foo.map((key, value) => MapEntry(TableHeader(name: key), value.map((e) => TextTableItem(value: e)).toList()));
+  @override
+  void initState() {
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      widget.controller.attach(widget.columns);
+    });
+    super.initState();
   }
 
-  const XTableStatic({super.key, required this.data, this.onRowTap, this.emptyBuilder});
-  XTableStatic.json({super.key,
-    required List<Map<String,dynamic>> data,
-    this.onRowTap,
-    this.emptyBuilder,
-  }): data = _mapJson(data);
+  List<XTableRow<T>> get rows => widget.controller.paginatedRows;
 
   @override
   Widget build(BuildContext context) {
-    var theme = XTableTheme.of(context);
-    
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SfDataGridTheme(
-          data: SfDataGridThemeData(
-            headerColor: theme.headerColor,
-            headerHoverColor: theme.hoverColor,
-            rowHoverColor: theme.hoverColor,
 
-          ),
-          child: SfDataGrid(
-              source: _DataSource(data),
-              gridLinesVisibility: GridLinesVisibility.none,
-              headerGridLinesVisibility: GridLinesVisibility.none,
 
-              onCellTap: (details) {
-                if (details.rowColumnIndex.rowIndex != 0 && onRowTap != null) {
-                  int selectedRowIndex = details.rowColumnIndex.rowIndex - 1;
-                  onRowTap!(selectedRowIndex);
-                }
-              },
+    return LayoutBuilder(
+      builder: (context, dimens) {
 
-              columnWidthMode: ColumnWidthMode.fill,
-              shrinkWrapRows: true,
-              headerRowHeight: theme.headerHeight ?? double.nan,
-              rowHeight: theme.rowHeight ?? double.nan,
-              columns: data.keys.map((e) => GridColumn(
-                  columnName: e.key,
-                  label: TableHeaderBuilder(e)
-              )).toList()
-          ),
-        ),
+        /// This is meant to solve the row overflow problem
+        //var maxWidth = dimens.maxWidth;
+        //if (widget.prefix != null) maxWidth -= widget.prefix!.width;
+        //if (widget.actions != null) maxWidth -= widget.actions!.width;
 
-        if (data.values.every((element) => element.isEmpty) && emptyBuilder != null)
-          emptyBuilder!
+        //final flexSum = widget.columns.map((e) => e.flex).reduce((a, b) => a+b);
 
-      ],
+        return AnimatedBuilder(
+          animation: widget.controller,
+          builder: (context, child) {
+
+            if (!widget.controller.isAttached) return XTableTheme.of(context).loadingBuilder;
+
+            return BuildTable<T>(
+                columns: widget.columns,
+                rows: rows,
+                onRowTap: widget.onRowTap,
+                onHeaderTap: (e) => widget.controller.sort(e.key),
+                shrinkWrap: widget.shrinkWrap,
+                physics: widget.physics,
+                headerBuilder: widget.headerBuilder,
+                hoverWrapper: widget.hoverWrapper,
+                prefix: widget.prefix,
+                actions: widget.actions,
+                columnsAlignment: widget.columnsAlignment,
+                sortingUp: widget.controller.sortingUp,
+                sortingColumnKey: widget.controller.sortingBy,
+            );
+
+          }
+        );
+      }
     );
   }
 }
-
 
 

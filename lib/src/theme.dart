@@ -16,10 +16,12 @@ class XTableThemeData with Diagnosticable {
   final double? rowHeight;
   final double? headerHeight;
   final Widget divider;
-  final Icon sortDownIcon;
-  final Icon sortUpIcon;
+  final Icon?sortDownIcon;
+  final Icon? sortUpIcon;
   final Widget loadingBuilder;
   final Widget emptyBuilder;
+  final BoxDecoration? headerDecoration;
+  final EdgeInsets horizontalPadding;
 
   /// If not null, it will override the sort icons color as well as the default header text color
   final Color? headerTextColor;
@@ -42,6 +44,8 @@ class XTableThemeData with Diagnosticable {
     this.rowColor,
     this.rowAlternateColor,
     this.itemHoverTextColor,
+    this.headerDecoration,
+    this.horizontalPadding = const EdgeInsets.symmetric(horizontal: 10.0),
   });
 
   static const XTableThemeData factory = XTableThemeData();
@@ -63,6 +67,8 @@ class XTableThemeData with Diagnosticable {
     Widget? loadingBuilder,
     Widget? emptyBuilder,
     Color? itemHoverTextColor,
+    BoxDecoration? headerDecoration,
+    EdgeInsets? horizontalPadding,
   }) => XTableThemeData(
       rowColor: rowColor ?? this.rowColor,
       rowAlternateColor: rowAlternateColor ?? this.rowAlternateColor,
@@ -79,7 +85,9 @@ class XTableThemeData with Diagnosticable {
       headerHoverTextColor: headerHoverTextColor ?? this.headerHoverTextColor,
       loadingBuilder: loadingBuilder ?? this.loadingBuilder,
       emptyBuilder: emptyBuilder ?? this.emptyBuilder,
-      itemHoverTextColor: itemHoverTextColor ?? this.itemHoverTextColor
+      itemHoverTextColor: itemHoverTextColor ?? this.itemHoverTextColor,
+      headerDecoration: headerDecoration ?? this.headerDecoration,
+      horizontalPadding: horizontalPadding ?? this.horizontalPadding,
   );
 
   XTableThemeData merge({XTableThemeData? themeData}) => XTableThemeData(
@@ -98,7 +106,9 @@ class XTableThemeData with Diagnosticable {
       headerHoverTextColor: themeData?.headerHoverTextColor ?? headerHoverTextColor,
       loadingBuilder: themeData?.loadingBuilder ?? loadingBuilder,
       emptyBuilder: themeData?.emptyBuilder ?? emptyBuilder,
-      itemHoverTextColor: themeData?.itemHoverTextColor ?? itemHoverTextColor
+      itemHoverTextColor: themeData?.itemHoverTextColor ?? itemHoverTextColor,
+      headerDecoration: themeData?.headerDecoration ?? headerDecoration,
+      horizontalPadding: themeData?.horizontalPadding ?? horizontalPadding,
   );
 
 }

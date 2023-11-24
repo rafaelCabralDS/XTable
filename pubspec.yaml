@@ -1,6 +1,6 @@
 name: x_table
 description: A new Flutter project.
-version: 0.4.0
+version: 0.6.0
 homepage:
 
 environment:
@@ -11,8 +11,6 @@ dependencies:
   flutter:
     sdk: flutter
 
-  syncfusion_flutter_datagrid: ^23.1.36
-  syncfusion_flutter_core: ^23.1.36
   equatable: ^2.0.5
 
 dev_dependencies:

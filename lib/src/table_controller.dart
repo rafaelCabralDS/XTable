@@ -1,12 +1,13 @@
 import 'dart:math';
 import 'package:flutter/cupertino.dart';
+import 'package:x_table/src/builders.dart';
 import 'package:x_table/src/utils.dart';
-import 'package:x_table/src/v3/filters.dart';
+import 'package:x_table/src/filters.dart';
 import 'package:collection/collection.dart';
-import 'package:x_table/src/v3/table_builders.dart';
+import 'package:x_table/src/table.dart';
 
 
-class XTableColumn<T> {
+class XTableColumn<T extends Object> {
 
   final String key;
   final String? name;
@@ -38,7 +39,7 @@ class XTableColumn<T> {
     this.compare,
     this.alignment,
     this.flex = 1,
-  }) : cell =  ((T e) => XTableCell(
+  }) : cell =  ((T e) => XTableCell<T>(
       cellBuilder: (e, isHovered) => defaultColumnTextBuilder(value(e), isHovered),
       value: value(e)
   ));
@@ -46,20 +47,19 @@ class XTableColumn<T> {
 
 }
 
-
-class XTableCell<T> {
+class XTableCell<T extends Object> {
 
   final Widget Function(T e, bool isHovered) cellBuilder;
   final dynamic value;
 
   const XTableCell({
+    required this.value,
     required this.cellBuilder,
-    required this.value
   });
 
 }
 
-class XTableRow<T> {
+class XTableRow<T extends Object> {
 
   final List<XTableCell<T>> cells;
   final int index;
@@ -72,9 +72,9 @@ class XTableRow<T> {
   });
 }
 
-typedef AttachmentCallback = void Function(List<XTableColumn> columns);
+typedef AttachmentCallback<T extends Object> = void Function(List<XTableColumn<T>> columns);
 
-class XTableController<T> extends ChangeNotifier {
+class XTableController<T extends Object> extends ChangeNotifier {
 
 
   /// The raw data of type [T] that will be mapped as _rows by the [columns] mapper
@@ -95,7 +95,7 @@ class XTableController<T> extends ChangeNotifier {
 
   bool isAttached = false;
 
-  late String sortingBy;
+  late String? sortingBy;
   bool sortingUp = true;
   int pageIndex = 0;
   late int paginateCount;
@@ -122,12 +122,12 @@ class XTableController<T> extends ChangeNotifier {
     for (var e in _attachmentCallbacks) {
       e.call(this.columns);
     }
-    sortingBy = columns.first.key;
+    sortingBy = columns.firstWhereOrNull((element) => element.compare != null)?.key;
     _sortFilterPaginate();
   }
 
-  final List<AttachmentCallback> _attachmentCallbacks = [];
-  void addPostAttachCallback(AttachmentCallback callback) {
+  final List<AttachmentCallback<T>> _attachmentCallbacks = [];
+  void addPostAttachCallback(AttachmentCallback<T> callback) {
     _attachmentCallbacks.add(callback);
   }
   
@@ -137,11 +137,29 @@ class XTableController<T> extends ChangeNotifier {
     source.clear();
     filteredRows = [];
     source.addAll(List.from(data));
-    if (isAttached) {
-      _sortFilterPaginate();
-    }
+    _sortFilterPaginate();
   }
 
+  /// Look for elements present in [source] using the optional [id] function if provided to run the equality comparison.
+  /// If there was an item present in the source, it will be replaced, if there wasnt and [shouldAdd] is true, it will be added.
+  /// At the end, current sorting and filters will be applied.
+  /// Returns the list of candidates that were not added/replaced at the table
+  List<T> replace(List<T> data, {dynamic Function(T)? id, bool shouldAdd = false}) {
+
+    final List<T> rejected = [];
+    for (final T update in data) {
+      final int indexOf = source.indexWhere((e) => (id?.call(e) ?? e) == (id?.call(update) ?? update));
+      if (indexOf != -1) {
+        source[indexOf] = update;
+      } else if(shouldAdd) {
+        source.add(update);
+      } else {
+        rejected.add(update);
+      }
+    }
+    _sortFilterPaginate(pageIndex);
+    return rejected;
+  }
 
   /*
   void addAll(List<T> data) {
@@ -172,10 +190,11 @@ class XTableController<T> extends ChangeNotifier {
    */
 
 
-  void _sortFilterPaginate() {
+  void _sortFilterPaginate([int page = 0]) {
+    if (!isAttached) return;
     filteredRows = _sort(effectiveRows);
     filteredRows = _filter(filteredRows);
-    setPage(0);
+    setPage(page);
   }
 
   /// Filtering
@@ -259,8 +278,10 @@ class XTableController<T> extends ChangeNotifier {
   }
 
   List<XTableRow<T>> _sort(List<XTableRow<T>> data) {
+    if (sortingBy == null) return data;
     var sortedColumn = columns.firstWhere((element) => element.key == sortingBy);
     var sortedColumnIndex = columns.indexWhere((element) => element.key == sortingBy);
+    if (sortedColumn.compare == null) return data;
     return data.sorted((rowA, rowB) => sortedColumn.compare!(
         (sortingUp ? rowA : rowB).cells[sortedColumnIndex].value,
         (!sortingUp ? rowA : rowB).cells[sortedColumnIndex].value));

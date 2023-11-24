@@ -12,3 +12,6 @@ extension ListExtension<E, Id> on List<E> {
     return mapListBy.contains(by(e));
   }
 }
+
+int textSorter(String a, String b) => a.compareTo(b);
+int numSorter(num a, num b) => a.compareTo(b);
