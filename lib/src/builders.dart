@@ -73,6 +73,7 @@ class BuildTable<T extends Object> extends StatelessWidget {
 
   final bool shrinkWrap;
   final ScrollPhysics physics;
+  final bool primary;
 
   const BuildTable({super.key,
     this.onRowTap,
@@ -88,6 +89,7 @@ class BuildTable<T extends Object> extends StatelessWidget {
     this.onHeaderTap,
     this.sortingUp = true,
     this.sortingColumnKey,
+    this.primary = true,
   });
 
   Widget _rowsBuilder() => Builder(
@@ -96,6 +98,7 @@ class BuildTable<T extends Object> extends StatelessWidget {
       return ListView.separated(
         shrinkWrap: shrinkWrap,
         physics: physics,
+        primary: primary,
         itemBuilder: (_, i) => Builder(builder: (context) {
           var isHovered = false;
           return StatefulBuilder(builder: (context, setState) {
@@ -130,7 +133,7 @@ class BuildTable<T extends Object> extends StatelessWidget {
             );
 
             return InkWell(
-              onTap: () => onRowTap?.call(rowData.e),
+              onTap: onRowTap != null ? () => onRowTap?.call(rowData.e) : null,
               onHover: (hovered) => setState(() => isHovered = hovered),
               hoverColor: (style.hoverColor ?? Theme.of(context).hoverColor),
               child: Container(
